@@ -410,24 +410,44 @@ tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.i
 tmp = sapply(keggresids, function(pid) pathview(gene.data=foldchanges, pathway.id=pid, species="dme"))
 
 
-data<-read.csv('BW_Arc1RNAi_vs_Control_sigdiff_gene_TE.csv',header = T)
+data<-read.csv('BW_Arc1RNAi_vs_Control_sigdiff_gene_TE_FPKM_sigf.csv',header = T)
 head(data)
 library(ggplot2)
-x = log2(data$AVE.1+1)
-y = log2(data$AVE+1)
-qplot(x=x, y=y, data=data,geom=c("point", "smooth"),method="lm", color = (data$AVE/data$AVE.1))
+
+#For data as factor, you need to transfer it to numbers, but first treat as characters first, otherwise the value will change.
+data$Arc1RNAiAVE<-as.numeric(as.character(data$Arc1RNAiAVE))
+data$ControlAVE<-as.numeric(as.character(data$ControlAVE))
+data$padj<-as.numeric(as.character(data$padj))
+
+#filter the data as you wish
+library(dplyr)
+#filter data with and condition
+data<-filter(data, (data$Arc1RNAiAVE >1 & data$ControlAVE >1 & data$pvalue>0))
+
+#filter data with or condition
+#data<-filter(data, (data$Arc1RNAiAVE>1) | (data$ControlAVE>1))
+Arc1RNAi = log2(data$Arc1RNAiAVE+1)
+Control = log2(data$ControlAVE+1)
+Padjvalue = data$padj
+
+#qplot
+qplot(x=x, y=y, data=data,geom=c("point", "smooth"),method="lm", color = data$pvalue)
 
 qplot(x=x, y=y, data=data, color = (data$AVE/data$AVE.1))
 
-qplot(x=x, y=y, data=data,geom=c("point", "smooth"),method="lm", color = (data$log2FoldChange))
+qplot(x=x, y=y, data=data, geom=c("point", "smooth"),method="lm")
 
-plot(x=x, y=y, pch=16, main="Arc1RNAi vs Control FPKM")
+#regular plot
+pdf('Arc1RNAi vs Control FPKM')
+plot(Arc1RNAi, Control, pch=16, cex=0.5,col= 'grey', main="Arc1RNAi vs Control FPKM")
+title(xlab = 'Arc1RNAi', ylab = 'Control')
 abline(a=0, b=1)
-sig<-which(data$AVE>20)
-#sigp<-which(data$pvalue<0.05)
+#sig<-which(data$AVE>20)
+sig<-which(data$pvalue<0.05)
 sigx<-x[sig]
-
 sigy<-y[sig]
-points(sigx,sigy, pch =16, col="red")
-text(sigx,sigy, data$X.1, cex=1, font=1)
+#sig<-which(data$AVE>20)
+points(sigx,sigy, pch =16, cex=0.5, col="black")
+text(sigx,sigy, data$target, cex=0.8, font=1.2, col = 'red')
+dev.off()
 
